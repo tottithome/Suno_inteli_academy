@@ -1,0 +1,7 @@
+Comunicado sintético do Copom para testes locais.
+
+O Comitê de Política Monetária decidiu manter a taxa Selic. O comunicado
+reiterou o forward guidance e destacou o hiato do produto ainda positivo.
+A curva de juros precifica a taxa terminal, enquanto o IPCA e o CDI seguem
+como referências de inflação e de alocação. Empresas com EBITDA ajustado
+pressionado e covenants apertados enfrentam custo de capital mais alto.
