@@ -22,10 +22,27 @@ CONTRATO = {
 }
 
 SISTEMA = (
-    "Voce adapta documentos financeiros brasileiros. "
-    "Use so fatos das ancoras e do trecho da fonte. Nao invente numeros. "
-    "Responda em portugues, so o texto da adaptacao, sem markdown."
+    "Voce e redator financeiro em portugues do Brasil. "
+    "Escreva SOMENTE o texto final para o leitor. "
+    "Proibido ingles, proibido explicar a tarefa, proibido listar regras, "
+    "proibido markdown e proibido inventar numeros."
 )
+
+MARCAS_META = (
+    "we need to",
+    "must use only",
+    "must respond",
+    "beginner persona",
+    "no jargon",
+    "everyday analogies",
+    "we must",
+    "adapted text",
+)
+
+
+def saida_invalida(texto: str) -> bool:
+    baixo = texto.casefold()
+    return any(marca in baixo for marca in MARCAS_META)
 
 
 def _rascunho(audiencia: str, fonte: str, falhas: list[str]) -> str:
@@ -42,14 +59,16 @@ def _rascunho(audiencia: str, fonte: str, falhas: list[str]) -> str:
 
 
 def _prompt(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tuple[str, str]:
-    user = {
-        "persona": audiencia,
-        "contrato": CONTRATO[audiencia],
-        "ancoras": anchors,
-        "fonte": " ".join(fonte.split()[:600]),
-        "falhas_do_avaliador": falhas[:8],
-    }
-    return SISTEMA, json.dumps(user, ensure_ascii=False)
+    correcoes = "; ".join(falhas[:8]) or "nenhuma"
+    user = (
+        f"Persona: {audiencia}\n"
+        f"Contrato: {CONTRATO[audiencia]}\n"
+        f"Ancoras (so estes fatos): {json.dumps(anchors, ensure_ascii=False)}\n"
+        f"Fonte:\n{' '.join(fonte.split()[:500])}\n"
+        f"Correcoes do avaliador: {correcoes}\n"
+        "Comece ja o texto para o leitor, em portugues."
+    )
+    return SISTEMA, user
 
 
 def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tuple[str, str]:
@@ -60,7 +79,15 @@ def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tup
 
         system, user = _prompt(audiencia, fonte, anchors, falhas)
         texto, modelo = completar(system, user)
-        return texto, f"ok ({modelo})"
+        if saida_invalida(texto):
+            texto, modelo = completar(
+                SISTEMA + " Se voce pensar, pense calado. So imprima o artigo.",
+                user,
+            )
+        aviso = f"ok ({modelo})"
+        if saida_invalida(texto):
+            aviso += " — recusou raciocinio em ingles"
+        return texto, aviso
     except Exception as exc:
         return _rascunho(audiencia, fonte, falhas), f"OpenRouter falhou ({type(exc).__name__})"
 

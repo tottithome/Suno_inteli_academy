@@ -12,6 +12,7 @@ from eval.readability import flesch_portugues
 from eval.term_density import densidade_terminologica
 from eval.thresholds import THRESHOLDS
 from contracts.models import JevVerdict
+from adapters.personas import saida_invalida
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,8 @@ def avaliar(
         falhas.append(
             "termos acima do nível: " + ", ".join(termos.termos_acima_do_nivel)
         )
+    if saida_invalida(texto):
+        falhas.append("saida meta/ingles em vez do texto para o leitor")
     if jev and not jev.pulou:
         falhas.extend(jev.falhas)
 

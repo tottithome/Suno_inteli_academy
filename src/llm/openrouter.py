@@ -68,7 +68,7 @@ def completar(system: str, user: str) -> tuple[str, str]:
                     {"role": "user", "content": user},
                 ],
                 temperature=0.3,
-                max_tokens=700,
+                max_tokens=1200,
             )
         except APIStatusError as exc:
             ultimo = exc
