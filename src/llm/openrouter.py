@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import os
 
-from openai import OpenAI, NotFoundError
+from openai import APIStatusError, OpenAI
 
 MODELOS_CANDIDATOS = (
-    "openrouter/free",
     "openai/gpt-oss-20b:free",
     "meta-llama/llama-3.3-70b-instruct:free",
+    "openrouter/free",
 )
+MODELOS_MORTOS = {
+    "meta-llama/llama-3.2-3b-instruct:free",
+}
+
+_modelo_ok: str | None = None
 
 
 def client() -> OpenAI:
@@ -27,17 +32,31 @@ def client() -> OpenAI:
     )
 
 
+def _eh_404(exc: Exception) -> bool:
+    codigo = getattr(exc, "status_code", None)
+    if codigo == 404:
+        return True
+    texto = str(exc).lower()
+    return "not found" in texto or "no endpoints found" in texto
+
+
 def _modelos() -> list[str]:
-    preferido = os.getenv("OPENROUTER_MODEL", MODELOS_CANDIDATOS[0]).strip()
-    fila = [preferido, *MODELOS_CANDIDATOS]
+    preferido = os.getenv("OPENROUTER_MODEL", "").strip()
+    fila = []
+    if _modelo_ok:
+        fila.append(_modelo_ok)
+    fila.extend([preferido, *MODELOS_CANDIDATOS])
     vistos: list[str] = []
     for modelo in fila:
-        if modelo and modelo not in vistos:
-            vistos.append(modelo)
+        if not modelo or modelo in MODELOS_MORTOS or modelo in vistos:
+            continue
+        vistos.append(modelo)
     return vistos
 
 
-def completar(system: str, user: str) -> str:
+def completar(system: str, user: str) -> tuple[str, str]:
+    """Devolve (texto, modelo_usado)."""
+    global _modelo_ok
     api = client()
     ultimo: Exception | None = None
     for modelo in _modelos():
@@ -51,11 +70,19 @@ def completar(system: str, user: str) -> str:
                 temperature=0.3,
                 max_tokens=700,
             )
-        except NotFoundError as exc:
+        except APIStatusError as exc:
             ultimo = exc
-            continue
+            if _eh_404(exc):
+                continue
+            raise
+        except Exception as exc:
+            ultimo = exc
+            if _eh_404(exc):
+                continue
+            raise
         texto = (resposta.choices[0].message.content or "").strip()
         if texto:
-            return texto
+            _modelo_ok = modelo
+            return texto, modelo
         ultimo = RuntimeError(f"OpenRouter devolveu texto vazio ({modelo})")
     raise ultimo or RuntimeError("OpenRouter sem modelo disponivel")

@@ -59,7 +59,8 @@ def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tup
         from llm.openrouter import completar
 
         system, user = _prompt(audiencia, fonte, anchors, falhas)
-        return completar(system, user), ""
+        texto, modelo = completar(system, user)
+        return texto, f"ok ({modelo})"
     except Exception as exc:
         return _rascunho(audiencia, fonte, falhas), f"OpenRouter falhou ({type(exc).__name__})"
 

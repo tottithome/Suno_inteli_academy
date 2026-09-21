@@ -40,8 +40,11 @@ def _rodar_pipeline(entrada: dict) -> None:
 
 
 def _mostrar_resultado(estado: dict) -> None:
-    if estado.get("adapter_aviso"):
-        st.warning(estado["adapter_aviso"])
+    aviso = estado.get("adapter_aviso") or ""
+    if "falhou" in aviso or "indisponivel" in aviso:
+        st.warning(aviso)
+    elif aviso:
+        st.info(aviso)
     if estado.get("scrape_aviso"):
         st.info(estado["scrape_aviso"])
     if not estado.get("source_text"):
