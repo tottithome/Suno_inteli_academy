@@ -20,3 +20,5 @@ class ContentState(TypedDict, total=False):
     retries: int
     reprocessar: bool
     falhas_para_reflexao: list[str]
+    coletar_noticias: bool
+    noticias_urls: list[str]

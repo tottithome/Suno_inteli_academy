@@ -89,7 +89,10 @@ def julgar(
     if not tem_jev():
         return JevVerdict(pulou=True, motivo_pulo="TYPESAFE_API_KEY ausente ou pytest")
 
-    from typesafe_sdk import TypeSafeClient
+    try:
+        from typesafe_sdk import TypeSafeClient
+    except ImportError:
+        return JevVerdict(pulou=True, motivo_pulo="typesafe_sdk nao instalado")
 
     modelo = os.getenv("JEV_MODEL", "jev-1.13.0")
     estado = montar_estado(texto, audiencia, anchors)
