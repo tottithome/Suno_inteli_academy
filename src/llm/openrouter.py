@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import os
+import time
 
 from openai import APIStatusError, OpenAI
 
 MODELOS_CANDIDATOS = (
     "openai/gpt-oss-20b:free",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "openrouter/free",
 )
 MODELOS_MORTOS = {
     "meta-llama/llama-3.2-3b-instruct:free",
+    "openrouter/free",
 }
 
 _modelo_ok: str | None = None
@@ -32,12 +33,17 @@ def client() -> OpenAI:
     )
 
 
-def _eh_404(exc: Exception) -> bool:
+def _eh_retry(exc: Exception) -> bool:
     codigo = getattr(exc, "status_code", None)
-    if codigo == 404:
+    if codigo in {404, 408, 429, 503}:
         return True
     texto = str(exc).lower()
-    return "not found" in texto or "no endpoints found" in texto
+    return (
+        "not found" in texto
+        or "no endpoints found" in texto
+        or "rate limit" in texto
+        or "temporar" in texto
+    )
 
 
 def _modelos() -> list[str]:
@@ -72,12 +78,18 @@ def completar(system: str, user: str) -> tuple[str, str]:
             )
         except APIStatusError as exc:
             ultimo = exc
-            if _eh_404(exc):
+            if modelo == _modelo_ok:
+                _modelo_ok = None
+            if _eh_retry(exc):
+                time.sleep(1.2)
                 continue
             raise
         except Exception as exc:
             ultimo = exc
-            if _eh_404(exc):
+            if modelo == _modelo_ok:
+                _modelo_ok = None
+            if _eh_retry(exc):
+                time.sleep(1.2)
                 continue
             raise
         texto = (resposta.choices[0].message.content or "").strip()

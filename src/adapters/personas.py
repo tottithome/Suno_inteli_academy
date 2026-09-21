@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 from config import tem_openrouter
 from graph.state import AUDIENCIAS, ContentState
@@ -13,11 +14,12 @@ CONTRATO = {
         "Nao so encurte o texto."
     ),
     "intermediario": (
-        "Pode usar Selic, CDI, IPCA, dividendos. Foco em alocacao e tendencia."
+        "Vocabulario de mercado so se o termo aparecer nas ancoras. "
+        "Nao invente Selic, CDI, IPCA ou dividendos. Foco em alocacao e tendencia."
     ),
     "avancado": (
-        "Preserve jargao institucional (forward guidance, hiato do produto, "
-        "curva de juros, EBITDA ajustado, covenants) com foco analitico."
+        "Tom institucional. Jargao tecnico so se aparecer na fonte. "
+        "Nao invente forward guidance, hiato do produto ou EBITDA."
     ),
 }
 
@@ -98,8 +100,13 @@ def adapters_node(state: ContentState) -> dict:
     anchors = state.get("anchors") or {}
     adaptations: dict[str, str] = {}
     avisos: list[str] = []
-    for audiencia in AUDIENCIAS:
+    for i, audiencia in enumerate(AUDIENCIAS):
+        if i:
+            time.sleep(1.0)
         texto, aviso = adaptar(audiencia, fonte, anchors, falhas)
+        if "falhou" in aviso:
+            time.sleep(1.5)
+            texto, aviso = adaptar(audiencia, fonte, anchors, falhas)
         adaptations[audiencia] = texto
         if aviso:
             avisos.append(f"{audiencia}: {aviso}")
