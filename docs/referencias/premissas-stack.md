@@ -17,7 +17,7 @@ Contrato primeiro, gerador depois. Trocar lib sem mudar a pergunta do case não 
 
 ## OpenRouter
 
-- Escreve as três personas a partir das âncoras (modelo `:free` primeiro).
+- Escreve as três personas a partir das âncoras (default `openrouter/free`; se 404, tenta outros `:free`).
 - Sem chave ou em pytest, usa rascunho fixo.
 - Se qualidade ou limite falhar, um pago barato (ex. Flash/mini).
 - Chave só em `.env` (`OPENROUTER_API_KEY`).
