@@ -17,16 +17,9 @@ def extrair_texto(
     caminho: str | None,
     texto: str | None,
     url: str | None = None,
-    auto_noticias: bool = False,
 ) -> tuple[str, str]:
     if texto and texto.strip():
         return texto.strip(), ""
-    if auto_noticias:
-        from scraping.news import coletar_noticias
-
-        coletado, urls = coletar_noticias()
-        aviso = "noticias automaticas: " + (", ".join(urls) if urls else "nenhuma URL")
-        return coletado, aviso
     if url and url.strip():
         from scraping.fetch import coletar_url
 
@@ -62,14 +55,9 @@ def extractor_node(state: ContentState) -> dict:
         state.get("source_path"),
         state.get("source_text"),
         state.get("source_url"),
-        bool(state.get("coletar_noticias")),
     )
-    urls: list[str] = []
-    if aviso.startswith("noticias automaticas:") and "http" in aviso:
-        urls = [p.strip() for p in aviso.split(":", 1)[1].split(",") if p.strip().startswith("http")]
     return {
         "source_text": texto,
         "scrape_aviso": aviso,
-        "noticias_urls": urls,
         "anchors": extrair_ancoras(texto),
     }

@@ -1,4 +1,5 @@
 from extract.anchor import extrair_texto
+from scraping.news import url_parece_artigo
 
 
 def test_url_invalida_quebra():
@@ -15,7 +16,11 @@ def test_texto_ganha_da_url():
     assert aviso == ""
 
 
-def test_auto_noticias_nao_roda_se_tem_texto():
-    texto, aviso = extrair_texto(None, "fonte local", None, auto_noticias=True)
-    assert texto == "fonte local"
-    assert aviso == ""
+def test_rejeita_listagem_e_aceita_slug():
+    assert url_parece_artigo("https://www.gov.br/cvm/pt-br/assuntos/noticias/2026") is False
+    assert url_parece_artigo(
+        "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/suspensao-de-ofertas"
+    )
+    assert url_parece_artigo(
+        "https://www.gov.br/cvm/pt-br/centrais-de-conteudo/atas-de-comites"
+    ) is False

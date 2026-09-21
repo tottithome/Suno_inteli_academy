@@ -29,33 +29,16 @@ SISTEMA = (
 
 
 def _rascunho(audiencia: str, fonte: str, falhas: list[str]) -> str:
-    trecho = " ".join(fonte.split()[:80])
+    trecho = " ".join(fonte.split()[:140])
     feedback = ""
     if falhas:
         feedback = " Ajuste pedido pelo avaliador: " + "; ".join(falhas[:3]) + "."
-
-    if audiencia == "iniciante":
-        return (
-            "O Banco Central mudou os juros basicos do pais. "
-            "Isso altera o custo do credito no dia a dia, como financiamento "
-            "e rendimento da poupanca. "
-            f"Trecho da fonte: {trecho}"
-            f"{feedback}"
-        )
-    if audiencia == "intermediario":
-        return (
-            "A decisao de politica monetaria altera a Selic e o CDI, com efeito "
-            "sobre alocacao em renda fixa e inflacao medida pelo IPCA. "
-            f"Fonte: {trecho}"
-            f"{feedback}"
-        )
-    return (
-        "O comunicado preserva o jargao institucional: forward guidance, "
-        "hiato do produto e a curva de juros informam a taxa terminal. "
-        "O EBITDA ajustado e covenants permanecem no recorte analitico. "
-        f"Fonte: {trecho}"
-        f"{feedback}"
-    )
+    abertura = {
+        "iniciante": "Em linguagem simples, com impacto no bolso: ",
+        "intermediario": "Leitura de mercado (alocacao e tendencia): ",
+        "avancado": "Leitura institucional: ",
+    }
+    return abertura.get(audiencia, "") + trecho + feedback
 
 
 def _prompt(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tuple[str, str]:
@@ -69,23 +52,27 @@ def _prompt(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tup
     return SISTEMA, json.dumps(user, ensure_ascii=False)
 
 
-def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> str:
+def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tuple[str, str]:
     if not tem_openrouter():
-        return _rascunho(audiencia, fonte, falhas)
+        return _rascunho(audiencia, fonte, falhas), "OpenRouter indisponivel; rascunho a partir da fonte"
     try:
         from llm.openrouter import completar
 
         system, user = _prompt(audiencia, fonte, anchors, falhas)
-        return completar(system, user)
-    except Exception:
-        return _rascunho(audiencia, fonte, falhas)
+        return completar(system, user), ""
+    except Exception as exc:
+        return _rascunho(audiencia, fonte, falhas), f"OpenRouter falhou ({type(exc).__name__})"
 
 
 def adapters_node(state: ContentState) -> dict:
     fonte = state.get("source_text") or ""
     falhas = state.get("falhas_para_reflexao") or []
     anchors = state.get("anchors") or {}
-    adaptations = {
-        audiencia: adaptar(audiencia, fonte, anchors, falhas) for audiencia in AUDIENCIAS
-    }
-    return {"adaptations": adaptations}
+    adaptations: dict[str, str] = {}
+    avisos: list[str] = []
+    for audiencia in AUDIENCIAS:
+        texto, aviso = adaptar(audiencia, fonte, anchors, falhas)
+        adaptations[audiencia] = texto
+        if aviso:
+            avisos.append(f"{audiencia}: {aviso}")
+    return {"adaptations": adaptations, "adapter_aviso": " | ".join(avisos)}
