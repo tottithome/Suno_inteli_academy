@@ -8,8 +8,8 @@ import time
 from openai import APIStatusError, OpenAI
 
 MODELOS_CANDIDATOS = (
-    "openai/gpt-oss-20b:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v4.1-flash",
 )
 MODELOS_MORTOS = {
     "meta-llama/llama-3.2-3b-instruct:free",
@@ -47,7 +47,9 @@ def _eh_retry(exc: Exception) -> bool:
 
 
 def _modelos() -> list[str]:
-    preferido = os.getenv("OPENROUTER_MODEL", "").strip()
+    preferido = os.getenv("OPENROUTER_MODEL", MODELOS_CANDIDATOS[0]).strip()
+    if preferido.endswith(":free"):
+        preferido = MODELOS_CANDIDATOS[0]
     fila = []
     if _modelo_ok:
         fila.append(_modelo_ok)
