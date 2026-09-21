@@ -11,6 +11,8 @@ FORMATOS = ("artigo", "carrossel", "roteiro")
 class ContentState(TypedDict, total=False):
     source_path: str
     source_text: str
+    source_url: str
+    scrape_aviso: str
     anchors: dict[str, Any]
     adaptations: dict[str, str]
     outputs: dict[str, dict[str, str]]

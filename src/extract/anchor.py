@@ -5,27 +5,38 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from graph.state import ContentState
 from contracts.models import Anchors
-
+from graph.state import ContentState
 
 NUMERO = re.compile(
     r"(?<!\w)(\d{1,3}(?:\.\d{3})*(?:,\d+)?%?|\d+(?:,\d+)?%)(?!\w)"
 )
 
 
-def extrair_texto(caminho: str | None, texto: str | None) -> str:
+def extrair_texto(
+    caminho: str | None,
+    texto: str | None,
+    url: str | None = None,
+) -> tuple[str, str]:
     if texto and texto.strip():
-        return texto.strip()
+        return texto.strip(), ""
+    if url and url.strip():
+        from scraping.fetch import coletar_url
+
+        coletado = coletar_url(url.strip())
+        if not coletado:
+            return "", f"Scrapling/trafilatura nao trouxe texto de {url}"
+        return coletado, f"coletado via Scrapling: {url}"
     if not caminho:
-        return ""
+        return "", ""
     path = Path(caminho)
     if path.suffix.lower() == ".pdf":
         from pypdf import PdfReader
 
         reader = PdfReader(str(path))
-        return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
-    return path.read_text(encoding="utf-8").strip()
+        extraido = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        return extraido, ""
+    return path.read_text(encoding="utf-8").strip(), ""
 
 
 def extrair_ancoras(texto: str) -> dict:
@@ -40,8 +51,13 @@ def extrair_ancoras(texto: str) -> dict:
 
 
 def extractor_node(state: ContentState) -> dict:
-    texto = extrair_texto(state.get("source_path"), state.get("source_text"))
+    texto, aviso = extrair_texto(
+        state.get("source_path"),
+        state.get("source_text"),
+        state.get("source_url"),
+    )
     return {
         "source_text": texto,
+        "scrape_aviso": aviso,
         "anchors": extrair_ancoras(texto),
     }

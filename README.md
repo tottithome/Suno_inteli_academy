@@ -57,7 +57,7 @@ Premissas em `docs/referencias/premissas-stack.md`.
 - Pydantic + Pydantic Evals (contrato e experimentos)
 - pytest + Flesch/glossário (juiz determinístico)
 - Jev / TypeSafe (no escopo: decisões tipadas no avaliador)
-- pypdf + Scrapling + trafilatura (PDF e HTML)
+- pypdf + Scrapling + trafilatura (PDF, HTML e URL no Streamlit)
 - Streamlit (dashboard)
 
 ## Como rodar

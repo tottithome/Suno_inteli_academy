@@ -36,6 +36,7 @@ packages = [
     "src/eval",
     "src/glossary",
     "src/llm",
+    "src/scraping",
     "src/ui",
 ]
 
