@@ -56,7 +56,7 @@ Premissas em `docs/referencias/premissas-stack.md`.
 - OpenRouter (gerar texto; modelo `:free` primeiro)
 - Pydantic + Pydantic Evals (contrato e experimentos)
 - pytest + Flesch/glossário (juiz determinístico)
-- Jev / TypeSafe (opcional: decisões tipadas no avaliador)
+- Jev / TypeSafe (no escopo: decisões tipadas no avaliador)
 - pypdf + Scrapling + trafilatura (PDF e HTML)
 - Streamlit (dashboard)
 

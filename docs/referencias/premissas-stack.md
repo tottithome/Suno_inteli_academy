@@ -29,9 +29,9 @@ Jev não é LLM. É um modelo de **decisão** (System One): recebe o **estado** 
 - **Choice** — uma opção. Ex.: “este texto parece iniciante, intermediário ou avançado?”
 - **Score** — escala. Ex.: “trivializou de 0 a 2?”
 
-No grafo: métricas determinísticas sempre; Jev nas perguntas subjetivas/baratas; LLM só gera (e, se Jev estiver inseguro, um juiz OpenRouter de fallback).
+No grafo: métricas determinísticas sempre; **Jev está no escopo** para nivel aparente, grounding e trivialização. LLM só gera. Se Jev estiver inseguro, fallback OpenRouter depois.
 
-Se não houver `TYPESAFE_API_KEY`, o pipeline segue com código + Pydantic Evals. Não travar o case na waitlist.
+Chave em `.env` (`TYPESAFE_API_KEY`). Sem chave o nó é pulado para os testes locais, mas a entrega usa Jev.
 
 ## Fora de escopo
 

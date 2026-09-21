@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from eval.readability import flesch_portugues
 from eval.term_density import densidade_terminologica
 from eval.thresholds import THRESHOLDS
+from contracts.models import JevVerdict
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,11 @@ def _clip(valor: float, minimo: float, maximo: float) -> float:
     return max(0.0, min(1.0, (valor - minimo) / (maximo - minimo)))
 
 
-def avaliar(texto: str, audiencia: str) -> HybridReport:
+def avaliar(
+    texto: str,
+    audiencia: str,
+    jev: JevVerdict | None = None,
+) -> HybridReport:
     limiar = THRESHOLDS[audiencia]
     leitura = flesch_portugues(texto)
     termos = densidade_terminologica(texto, audiencia)
@@ -56,6 +61,8 @@ def avaliar(texto: str, audiencia: str) -> HybridReport:
         falhas.append(
             "termos acima do nível: " + ", ".join(termos.termos_acima_do_nivel)
         )
+    if jev and not jev.pulou:
+        falhas.extend(jev.falhas)
 
     # Score 1.0 quando está no centro da faixa de Flesch e sem violações de jargão.
     flesch_score = 1.0 - abs(
@@ -74,5 +81,6 @@ def avaliar(texto: str, audiencia: str) -> HybridReport:
         detalhes={
             "readability": asdict(leitura),
             "term_density": asdict(termos),
+            "jev": jev.model_dump() if jev else None,
         },
     )

@@ -1,4 +1,5 @@
 from eval.hybrid import avaliar
+from contracts.models import JevVerdict
 
 
 def test_iniciante_rejeita_jargao_sem_analogia():
@@ -20,3 +21,14 @@ def test_avancado_aceita_jargao_tecnico():
     )
     relatorio = avaliar(texto, "avancado")
     assert "jargão sem analogia" not in " ".join(relatorio.falhas)
+
+
+def test_jev_reprova_nivel_errado():
+    jev = JevVerdict(
+        nivel_aparente="avancado",
+        nivel_confianca=0.9,
+        falhas=["Jev: nivel aparente avancado != alvo iniciante"],
+    )
+    relatorio = avaliar("O banco mudou os juros basicos do pais.", "iniciante", jev=jev)
+    assert relatorio.passou is False
+    assert any("Jev" in f for f in relatorio.falhas)

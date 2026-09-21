@@ -14,14 +14,12 @@ dependencies = [
     "scrapling[fetchers]>=0.4.9",
     "streamlit>=1.58.0",
     "trafilatura>=2.1.0",
+    "typesafe-sdk>=0.6.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3.0",
-]
-jev = [
-    "typesafe-sdk>=0.6.0",
 ]
 
 [build-system]
@@ -30,6 +28,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = [
+    "src/contracts",
     "src/graph",
     "src/extract",
     "src/adapters",

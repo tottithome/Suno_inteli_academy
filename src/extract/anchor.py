@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from graph.state import ContentState
+from contracts.models import Anchors
 
 
 NUMERO = re.compile(
@@ -30,12 +31,12 @@ def extrair_texto(caminho: str | None, texto: str | None) -> str:
 def extrair_ancoras(texto: str) -> dict:
     numeros = NUMERO.findall(texto)
     frases = [f.strip() for f in re.split(r"(?<=[.!?])\s+", texto) if f.strip()]
-    return {
-        "numeros_chave": numeros[:40],
-        "frases_ancora": frases[:12],
-        "n_caracteres": len(texto),
-        "n_frases": len(frases),
-    }
+    return Anchors(
+        numeros_chave=numeros[:40],
+        frases_ancora=frases[:12],
+        n_caracteres=len(texto),
+        n_frases=len(frases),
+    ).model_dump()
 
 
 def extractor_node(state: ContentState) -> dict:

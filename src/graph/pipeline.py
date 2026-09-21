@@ -6,6 +6,7 @@ from langgraph.graph import END, START, StateGraph
 
 from adapters.personas import adapters_node
 from eval.hybrid import avaliar
+from eval.jev import julgar
 from extract.anchor import extractor_node
 from formats.synthesizers import formats_node
 from graph.routing import route_after_eval
@@ -17,13 +18,15 @@ def evaluator_node(state: ContentState) -> dict:
     reports = {}
     falhas: list[str] = []
     for audiencia, texto in adaptations.items():
-        relatorio = avaliar(texto, audiencia)
+        veredito = julgar(texto, audiencia, state.get("anchors"))
+        relatorio = avaliar(texto, audiencia, jev=veredito)
         reports[audiencia] = {
             "passou": relatorio.passou,
             "score": relatorio.score,
             "flesch_pt": relatorio.flesch_pt,
             "densidade": relatorio.densidade,
             "falhas": list(relatorio.falhas),
+            "jev": veredito.model_dump(),
         }
         falhas.extend(f"{audiencia}: {f}" for f in relatorio.falhas)
 
