@@ -6,6 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 
+import config  # noqa: F401  carrega .env
 from graph.pipeline import build_graph
 from graph.state import AUDIENCIAS, FORMATOS
 

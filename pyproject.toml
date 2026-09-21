@@ -35,8 +35,12 @@ packages = [
     "src/formats",
     "src/eval",
     "src/glossary",
+    "src/llm",
     "src/ui",
 ]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/config.py" = "config.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

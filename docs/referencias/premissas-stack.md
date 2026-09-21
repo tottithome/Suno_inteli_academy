@@ -17,7 +17,8 @@ Contrato primeiro, gerador depois. Trocar lib sem mudar a pergunta do case não 
 
 ## OpenRouter
 
-- Começar com modelo `:free`.
+- Escreve as três personas a partir das âncoras (modelo `:free` primeiro).
+- Sem chave ou em pytest, usa rascunho fixo.
 - Se qualidade ou limite falhar, um pago barato (ex. Flash/mini).
 - Chave só em `.env` (`OPENROUTER_API_KEY`).
 

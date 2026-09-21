@@ -53,7 +53,7 @@ Premissas em `docs/referencias/premissas-stack.md`.
 
 - Python 3.11+
 - LangGraph (esteira com retry)
-- OpenRouter (gerar texto; modelo `:free` primeiro)
+- OpenRouter (gerar texto nos adapters; modelo `:free` primeiro)
 - Pydantic + Pydantic Evals (contrato e experimentos)
 - pytest + Flesch/glossário (juiz determinístico)
 - Jev / TypeSafe (no escopo: decisões tipadas no avaliador)

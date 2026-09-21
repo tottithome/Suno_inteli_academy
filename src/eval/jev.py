@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from config import tem_jev
 from contracts.models import Anchors, Audiencia, JevVerdict
 
 NOUL_MIN = 0.55
@@ -85,8 +86,8 @@ def julgar(
     audiencia: Audiencia,
     anchors: Anchors | dict[str, Any] | None = None,
 ) -> JevVerdict:
-    if not os.getenv("TYPESAFE_API_KEY", "").strip():
-        return JevVerdict(pulou=True, motivo_pulo="TYPESAFE_API_KEY ausente")
+    if not tem_jev():
+        return JevVerdict(pulou=True, motivo_pulo="TYPESAFE_API_KEY ausente ou pytest")
 
     from typesafe_sdk import TypeSafeClient
 
