@@ -22,7 +22,7 @@ Resumir ata do Copom com um LLM genérico costuma falhar de dois jeitos: o model
 - avaliador híbrido (Flesch em português + densidade de termos + checagem de jargão)
 - reflection loop: se a versão sai da faixa da persona, o grafo reprocessa com o relatório de falhas
 
-O PDF do case está em `tap_case_suno.pdf`. A transcrição operacional está em `docs/referencias/tap.md`.
+O PDF do case está em `tap_case_suno.pdf`. TAP em `docs/referencias/tap.md`. Stack em `docs/referencias/premissas-stack.md`.
 
 ## Matriz de adaptação
 
@@ -49,12 +49,16 @@ flowchart TD
 
 ## Stack
 
-- Python 3.12+
-- LangGraph para o workflow com estado
-- pypdf na ingestão
-- Streamlit no dashboard comparativo
-- pytest na suíte de eval
-- OpenAI (adapters LLM na próxima iteração; o esqueleto já roda sem chave)
+Premissas em `docs/referencias/premissas-stack.md`.
+
+- Python 3.11+
+- LangGraph (esteira com retry)
+- OpenRouter (gerar texto; modelo `:free` primeiro)
+- Pydantic + Pydantic Evals (contrato e experimentos)
+- pytest + Flesch/glossário (juiz determinístico)
+- Jev / TypeSafe (opcional: decisões tipadas no avaliador)
+- pypdf + Scrapling + trafilatura (PDF e HTML)
+- Streamlit (dashboard)
 
 ## Como rodar
 
@@ -80,7 +84,7 @@ src/glossary/    glossário financeiro e analogias
 src/graph/       estado, roteamento e pipeline LangGraph
 src/ui/          dashboard Streamlit
 tests/           asserções determinísticas da suíte de eval
-docs/referencias/tap.md
+docs/referencias/tap.md e premissas-stack.md
 ```
 
 ## Entregáveis

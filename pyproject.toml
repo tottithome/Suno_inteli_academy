@@ -8,14 +8,20 @@ dependencies = [
     "langgraph>=1.2.6",
     "openai>=2.41.1",
     "pydantic>=2.11.0",
+    "pydantic-evals>=0.1.0",
     "pypdf>=5.4.0",
     "python-dotenv>=1.2.2",
+    "scrapling[fetchers]>=0.4.9",
     "streamlit>=1.58.0",
+    "trafilatura>=2.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3.0",
+]
+jev = [
+    "typesafe-sdk>=0.6.0",
 ]
 
 [build-system]
