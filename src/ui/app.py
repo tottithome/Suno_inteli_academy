@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -30,13 +32,47 @@ def _init_state() -> None:
 def _rodar_pipeline(entrada: dict) -> None:
     grafo = build_graph()
     estado: dict = {}
+    logs: list[dict] = []
+    inicio = time.perf_counter()
+    marca = inicio
     with st.status("Processando a requisicao...", expanded=True) as status:
         for trecho in grafo.stream(entrada):
             nome = next(iter(trecho))
+            agora = time.perf_counter()
+            segundos = round(agora - marca, 1)
+            marca = agora
+            logs.append({"etapa": nome, "rotulo": ETAPAS.get(nome, nome), "segundos": segundos})
             estado.update(trecho[nome])
-            status.write(ETAPAS.get(nome, nome))
-        status.update(label="Concluido", state="complete")
+            status.write(f"{ETAPAS.get(nome, nome)} — {segundos}s")
+        total = round(time.perf_counter() - inicio, 1)
+        logs.append({"etapa": "total", "rotulo": "Total", "segundos": total})
+        status.update(label=f"Concluido em {total}s", state="complete")
+    estado["logs"] = logs
     st.session_state.resultado = estado
+
+
+def _pacote(estado: dict) -> str:
+    linhas = ["# Suno Content — pacote da execucao", ""]
+    linhas.append("## Tempos")
+    for item in estado.get("logs") or []:
+        linhas.append(f"- {item['rotulo']}: {item['segundos']}s")
+    if estado.get("adapter_aviso"):
+        linhas.extend(["", "## Avisos", estado["adapter_aviso"]])
+    linhas.extend(["", "## Ancoras", json.dumps(estado.get("anchors") or {}, ensure_ascii=False, indent=2)])
+    outputs = estado.get("outputs") or {}
+    for audiencia in AUDIENCIAS:
+        linhas.append(f"\n## {audiencia}")
+        for formato in FORMATOS:
+            linhas.append(f"\n### {formato}\n")
+            linhas.append(outputs.get(audiencia, {}).get(formato, ""))
+    linhas.extend([
+        "",
+        "## Avaliador",
+        json.dumps(estado.get("eval_reports") or {}, ensure_ascii=False, indent=2),
+    ])
+    if estado.get("falhas_para_reflexao"):
+        linhas.extend(["", "## Falhas do retry", json.dumps(estado["falhas_para_reflexao"], ensure_ascii=False)])
+    return "\n".join(linhas).strip() + "\n"
 
 
 def _slides(texto: str) -> list[str]:
@@ -68,6 +104,21 @@ def _mostrar_resultado(estado: dict) -> None:
     if not estado.get("source_text"):
         st.error("Nao veio texto da fonte.")
         return
+
+    pacote = _pacote(estado)
+    tempos = " · ".join(
+        f"{item['rotulo']} {item['segundos']}s" for item in (estado.get("logs") or [])
+    )
+    if tempos:
+        st.caption(tempos)
+    st.download_button(
+        "Baixar pacote (conteudo, juiz e tempos)",
+        data=pacote,
+        file_name="suno_execucao.txt",
+        mime="text/plain",
+    )
+    with st.expander("Copiar pacote para colar no chat"):
+        st.text_area("Pacote", pacote, height=220)
 
     outputs = estado.get("outputs") or {}
     reports = estado.get("eval_reports") or {}
