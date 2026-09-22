@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import time
+from concurrent.futures import ThreadPoolExecutor
 
 from config import tem_openrouter
 from graph.state import AUDIENCIAS, FORMATOS, ContentState
@@ -62,55 +62,51 @@ def _parse_formatos(bruto: str) -> dict[str, str] | None:
     return {"carrossel": carrossel, "roteiro": roteiro}
 
 
-def _sintetizar_llm(audiencia: str, artigo: str, anchors: dict) -> dict[str, str] | None:
+def _sintetizar_llm(audiencia: str, artigo: str, _anchors: dict) -> dict[str, str] | None:
     from llm.openrouter import completar
 
     user = (
         f"Persona: {audiencia}\n"
-        f"Artigo base:\n{artigo[:2500]}\n"
-        f"Ancoras permitidas: {json.dumps(anchors, ensure_ascii=False)}\n"
-        "No carrossel, no maximo 6 linhas 'Slide N: ...'. "
-        "No roteiro, linhas [0-3s], [3-20s], [20-45s] e [45-60s]."
+        f"Artigo base:\n{artigo[:900]}\n"
+        "Carrossel: ate 6 linhas curtas 'Slide N: ...'. "
+        "Roteiro: 4 linhas curtas [0-3s], [3-20s], [20-45s], [45-60s]. "
+        "Nao corte frase no meio."
     )
-    bruto, _modelo = completar(SISTEMA, user)
-    extra = _parse_formatos(bruto)
-    if extra:
-        return extra
-    bruto, _modelo = completar(SISTEMA, user + "\nRepita so os dois blocos ===CARROSSEL=== e ===ROTEIRO===.")
+    bruto, _modelo = completar(SISTEMA, user, max_tokens=500)
     return _parse_formatos(bruto)
+
+
+def _uma_persona(audiencia: str, texto: str, anchors: dict, usar_llm: bool) -> tuple[str, dict[str, str], str]:
+    artigo = _artigo(texto, audiencia)
+    extra = None
+    aviso = ""
+    if usar_llm:
+        try:
+            extra = _sintetizar_llm(audiencia, texto, anchors)
+        except Exception as exc:
+            aviso = f"{audiencia}: formato LLM falhou ({type(exc).__name__}: {exc})"
+    if not extra:
+        extra = {
+            "carrossel": _carrossel_local(texto, audiencia),
+            "roteiro": _roteiro_local(texto, audiencia),
+        }
+        if usar_llm and not aviso:
+            aviso = f"{audiencia}: formato local (resposta sem os blocos)"
+    return audiencia, {"artigo": artigo, **extra}, aviso
 
 
 def formats_node(state: ContentState) -> dict:
     adaptations = state.get("adaptations") or {}
     anchors = state.get("anchors") or {}
-    outputs: dict[str, dict[str, str]] = {}
-    avisos: list[str] = []
     usar_llm = tem_openrouter()
-    for i, audiencia in enumerate(AUDIENCIAS):
-        texto = adaptations.get(audiencia, "")
-        artigo = _artigo(texto, audiencia)
-        extra = None
-        if usar_llm:
-            if i:
-                time.sleep(0.8)
-            try:
-                extra = _sintetizar_llm(audiencia, texto, anchors)
-            except Exception as exc:
-                avisos.append(f"{audiencia}: formato LLM falhou ({type(exc).__name__})")
-        if extra:
-            outputs[audiencia] = {
-                "artigo": artigo,
-                "carrossel": extra["carrossel"],
-                "roteiro": extra["roteiro"],
-            }
-        else:
-            outputs[audiencia] = {
-                "artigo": artigo,
-                "carrossel": _carrossel_local(texto, audiencia),
-                "roteiro": _roteiro_local(texto, audiencia),
-            }
-            if usar_llm and not any(audiencia in a for a in avisos):
-                avisos.append(f"{audiencia}: formato local (JSON invalido)")
+    personas = [(aud, adaptations.get(aud, "")) for aud in AUDIENCIAS]
+    if usar_llm:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            prontos = list(pool.map(lambda item: _uma_persona(item[0], item[1], anchors, True), personas))
+    else:
+        prontos = [_uma_persona(aud, texto, anchors, False) for aud, texto in personas]
+    outputs = {aud: saida for aud, saida, _aviso in prontos}
+    avisos = [aviso for _aud, _saida, aviso in prontos if aviso]
     aviso_atual = state.get("adapter_aviso") or ""
     extra_aviso = " | ".join(avisos)
     juntado = " | ".join(p for p in (aviso_atual, extra_aviso) if p)

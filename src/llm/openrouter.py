@@ -62,7 +62,7 @@ def _modelos() -> list[str]:
     return vistos
 
 
-def completar(system: str, user: str) -> tuple[str, str]:
+def completar(system: str, user: str, max_tokens: int = 1200) -> tuple[str, str]:
     """Devolve (texto, modelo_usado)."""
     global _modelo_ok
     api = client()
@@ -76,7 +76,7 @@ def completar(system: str, user: str) -> tuple[str, str]:
                     {"role": "user", "content": user},
                 ],
                 temperature=0.3,
-                max_tokens=1200,
+                max_tokens=max_tokens,
             )
         except APIStatusError as exc:
             ultimo = exc
