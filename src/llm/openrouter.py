@@ -77,15 +77,36 @@ def completar(system: str, user: str, max_tokens: int = 1200) -> tuple[str, str]
                 ],
                 temperature=0.3,
                 max_tokens=max_tokens,
+                extra_body={"reasoning": {"enabled": False}},
             )
         except APIStatusError as exc:
-            ultimo = exc
-            if modelo == _modelo_ok:
-                _modelo_ok = None
-            if _eh_retry(exc):
-                time.sleep(1.2)
-                continue
-            raise
+            if getattr(exc, "status_code", None) == 400:
+                try:
+                    resposta = api.chat.completions.create(
+                        model=modelo,
+                        messages=[
+                            {"role": "system", "content": system},
+                            {"role": "user", "content": user},
+                        ],
+                        temperature=0.3,
+                        max_tokens=max_tokens,
+                    )
+                except APIStatusError as segunda:
+                    ultimo = segunda
+                    if modelo == _modelo_ok:
+                        _modelo_ok = None
+                    if _eh_retry(segunda):
+                        time.sleep(1.2)
+                        continue
+                    raise
+            else:
+                ultimo = exc
+                if modelo == _modelo_ok:
+                    _modelo_ok = None
+                if _eh_retry(exc):
+                    time.sleep(1.2)
+                    continue
+                raise
         except Exception as exc:
             ultimo = exc
             if modelo == _modelo_ok:

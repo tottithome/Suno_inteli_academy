@@ -41,18 +41,58 @@ def _roteiro_local(texto: str, audiencia: str) -> str:
     )
 
 
+_SLOTS = ("[0-3s]", "[3-20s]", "[20-45s]", "[45-60s]")
+
+
+def _limpa_linha(bruto: str) -> str:
+    return bruto.strip().lstrip("-*#> ").strip()
+
+
+def _roteiro_dos_slides(slides: list[str]) -> list[str]:
+    miolos = []
+    for slide in slides:
+        miolo = re.sub(r"(?i)^slide\s*\d+\s*[:.\-]\s*", "", slide).strip()
+        if miolo:
+            miolos.append(miolo)
+    if not miolos:
+        miolos = ["Fechamento"]
+    while len(miolos) < len(_SLOTS):
+        miolos.append(miolos[-1])
+    return [f"{slot} {miolo}" for slot, miolo in zip(_SLOTS, miolos, strict=False)]
+
+
+def _slides_dos_tempos(tempos: list[str]) -> list[str]:
+    slides = []
+    for i, tempo in enumerate(tempos, start=1):
+        miolo = re.sub(r"^\[\d+[^\]]*\]\s*", "", tempo).strip()
+        slides.append(f"Slide {i}: {miolo or 'ponto da noticia'}")
+    return slides
+
+
+def _montar(slides: list[str], tempos: list[str]) -> dict[str, str] | None:
+    if len(slides) >= 2 and len(tempos) < 2:
+        tempos = _roteiro_dos_slides(slides)
+    elif len(tempos) >= 2 and len(slides) < 2:
+        slides = _slides_dos_tempos(tempos)
+    if len(slides) >= 2 and len(tempos) >= 2:
+        return {"carrossel": "\n".join(slides), "roteiro": "\n".join(tempos)}
+    return None
+
+
 def _por_linhas(texto: str) -> dict[str, str] | None:
     slides: list[str] = []
     tempos: list[str] = []
     for bruto in texto.splitlines():
-        linha = bruto.strip().lstrip("-* ")
+        linha = _limpa_linha(bruto)
+        if not linha:
+            continue
         if re.match(r"(?i)^slide\s*\d+", linha):
             slides.append(linha)
         elif re.match(r"^\[\d+", linha):
             tempos.append(linha)
-    if len(slides) >= 2 and len(tempos) >= 2:
-        return {"carrossel": "\n".join(slides), "roteiro": "\n".join(tempos)}
-    return None
+        elif re.match(r"^\d+[\.\)]\s+\S", linha) and len(linha.split()) <= 24:
+            slides.append(f"Slide {linha.split(maxsplit=1)[0].rstrip('.)')}: {linha.split(maxsplit=1)[1]}")
+    return _montar(slides, tempos)
 
 
 def _parse_formatos(bruto: str) -> dict[str, str] | None:
@@ -63,6 +103,9 @@ def _parse_formatos(bruto: str) -> dict[str, str] | None:
         _, resto = texto.split(marcador_c, 1)
         carrossel, roteiro = resto.split(marcador_r, 1)
         carrossel, roteiro = carrossel.strip(), roteiro.strip()
+        pronto = _montar(carrossel.splitlines(), roteiro.splitlines()) if carrossel or roteiro else None
+        if pronto:
+            return pronto
         if carrossel and roteiro:
             return {"carrossel": carrossel, "roteiro": roteiro}
     solto = _por_linhas(texto)
@@ -87,12 +130,12 @@ def _sintetizar_llm(audiencia: str, artigo: str, _anchors: dict) -> dict[str, st
 
     user = (
         f"Persona: {audiencia}\n"
-        f"Artigo base:\n{artigo[:900]}\n"
-        "Carrossel: ate 6 linhas curtas 'Slide N: ...'. "
-        "Roteiro: 4 linhas curtas [0-3s], [3-20s], [20-45s], [45-60s]. "
-        "Nao corte frase no meio."
+        f"Artigo base:\n{artigo[:500]}\n"
+        "Carrossel: 6 linhas, cada uma com no maximo 14 palavras, no formato 'Slide N: ...'. "
+        "Roteiro: exatamente 4 linhas [0-3s], [3-20s], [20-45s], [45-60s]. "
+        "Nao copie o artigo. Nao corte frase no meio."
     )
-    bruto, _modelo = completar(SISTEMA, user, max_tokens=900)
+    bruto, _modelo = completar(SISTEMA, user, max_tokens=500)
     return _parse_formatos(bruto)
 
 

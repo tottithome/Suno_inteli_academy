@@ -68,7 +68,8 @@ def _prompt(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tup
         f"Ancoras (so estes fatos): {json.dumps(anchors, ensure_ascii=False)}\n"
         f"Fonte:\n{' '.join(fonte.split()[:500])}\n"
         f"Correcoes do avaliador: {correcoes}\n"
-        "Comece ja o texto para o leitor, em portugues."
+        "Comece ja o texto para o leitor, em portugues. "
+        "Termine cada frase. O texto acaba em ponto final."
     )
     return SISTEMA, user
 
@@ -80,7 +81,7 @@ def adaptar(audiencia: str, fonte: str, anchors: dict, falhas: list[str]) -> tup
         from llm.openrouter import completar
 
         system, user = _prompt(audiencia, fonte, anchors, falhas)
-        texto, modelo = completar(system, user)
+        texto, modelo = completar(system, user, max_tokens=1800)
         if saida_invalida(texto):
             texto, modelo = completar(
                 SISTEMA + " Se voce pensar, pense calado. So imprima o artigo.",

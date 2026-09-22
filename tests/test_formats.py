@@ -15,6 +15,14 @@ def test_parse_sem_marcadores():
     assert "[3-20s]" in dados["roteiro"]
 
 
+def test_parse_so_com_slides_monta_roteiro():
+    bruto = "Slide 1: CVM apresenta Otto Lobo\nSlide 2: Foco em tecnologia e fiscalizacao"
+    dados = _parse_formatos(bruto)
+    assert "Slide 2" in dados["carrossel"]
+    assert "[45-60s]" in dados["roteiro"]
+    assert "Fatos da fonte" not in dados["roteiro"]
+
+
 def test_parse_json_de_formatos():
     bruto = '{"carrossel": "Slide 1: gancho", "roteiro": "[0-3s] ola"}'
     dados = _parse_formatos(bruto)
