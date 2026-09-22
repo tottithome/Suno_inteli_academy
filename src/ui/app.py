@@ -16,7 +16,7 @@ SAMPLE = Path(__file__).resolve().parents[2] / "data" / "samples" / "copom_sinte
 ETAPAS = {
     "extract": "Lendo fonte e extraindo ancoras",
     "adapters": "Gerando textos (OpenRouter)",
-    "formats": "Montando artigo, carrossel e roteiro",
+    "formats": "Gerando carrossel e roteiro (DeepSeek)",
     "evaluator": "Avaliando (Flesch, jargao, Jev)",
 }
 
