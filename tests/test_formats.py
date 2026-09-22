@@ -8,6 +8,13 @@ def test_parse_blocos_rotulados():
     assert "[0-3s]" in dados["roteiro"]
 
 
+def test_parse_sem_marcadores():
+    bruto = "Slide 1: gancho\nSlide 2: corpo\n[0-3s] ola\n[3-20s] explica"
+    dados = _parse_formatos(bruto)
+    assert "Slide 1" in dados["carrossel"]
+    assert "[3-20s]" in dados["roteiro"]
+
+
 def test_parse_json_de_formatos():
     bruto = '{"carrossel": "Slide 1: gancho", "roteiro": "[0-3s] ola"}'
     dados = _parse_formatos(bruto)

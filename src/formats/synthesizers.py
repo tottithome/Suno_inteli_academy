@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 from config import tem_openrouter
@@ -40,14 +41,33 @@ def _roteiro_local(texto: str, audiencia: str) -> str:
     )
 
 
+def _por_linhas(texto: str) -> dict[str, str] | None:
+    slides: list[str] = []
+    tempos: list[str] = []
+    for bruto in texto.splitlines():
+        linha = bruto.strip().lstrip("-* ")
+        if re.match(r"(?i)^slide\s*\d+", linha):
+            slides.append(linha)
+        elif re.match(r"^\[\d+", linha):
+            tempos.append(linha)
+    if len(slides) >= 2 and len(tempos) >= 2:
+        return {"carrossel": "\n".join(slides), "roteiro": "\n".join(tempos)}
+    return None
+
+
 def _parse_formatos(bruto: str) -> dict[str, str] | None:
     texto = bruto.strip()
-    if "===CARROSSEL===" in texto and "===ROTEIRO===" in texto:
-        _, resto = texto.split("===CARROSSEL===", 1)
-        carrossel, roteiro = resto.split("===ROTEIRO===", 1)
+    marcador_c = "===CARROSSEL==="
+    marcador_r = "===ROTEIRO==="
+    if marcador_c in texto and marcador_r in texto:
+        _, resto = texto.split(marcador_c, 1)
+        carrossel, roteiro = resto.split(marcador_r, 1)
         carrossel, roteiro = carrossel.strip(), roteiro.strip()
         if carrossel and roteiro:
             return {"carrossel": carrossel, "roteiro": roteiro}
+    solto = _por_linhas(texto)
+    if solto:
+        return solto
     ini, fim = texto.find("{"), texto.rfind("}")
     if ini < 0 or fim <= ini:
         return None
@@ -72,7 +92,7 @@ def _sintetizar_llm(audiencia: str, artigo: str, _anchors: dict) -> dict[str, st
         "Roteiro: 4 linhas curtas [0-3s], [3-20s], [20-45s], [45-60s]. "
         "Nao corte frase no meio."
     )
-    bruto, _modelo = completar(SISTEMA, user, max_tokens=500)
+    bruto, _modelo = completar(SISTEMA, user, max_tokens=900)
     return _parse_formatos(bruto)
 
 
