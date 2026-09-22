@@ -10,8 +10,12 @@ from graph.state import AUDIENCIAS, FORMATOS, ContentState
 
 SISTEMA = (
     "Voce formata conteudo financeiro em portugues do Brasil. "
-    "Responda SOMENTE um JSON com as chaves carrossel e roteiro. "
-    "Nao invente fatos nem numeros. Sem markdown."
+    "Nao invente fatos nem numeros. Sem markdown e sem JSON. "
+    "Responda exatamente com dois blocos, nesta ordem:\n"
+    "===CARROSSEL===\n"
+    "Slide 1: ...\n"
+    "===ROTEIRO===\n"
+    "[0-3s] ..."
 )
 
 
@@ -37,11 +41,18 @@ def _roteiro_local(texto: str, audiencia: str) -> str:
 
 
 def _parse_formatos(bruto: str) -> dict[str, str] | None:
-    ini, fim = bruto.find("{"), bruto.rfind("}")
+    texto = bruto.strip()
+    if "===CARROSSEL===" in texto and "===ROTEIRO===" in texto:
+        _, resto = texto.split("===CARROSSEL===", 1)
+        carrossel, roteiro = resto.split("===ROTEIRO===", 1)
+        carrossel, roteiro = carrossel.strip(), roteiro.strip()
+        if carrossel and roteiro:
+            return {"carrossel": carrossel, "roteiro": roteiro}
+    ini, fim = texto.find("{"), texto.rfind("}")
     if ini < 0 or fim <= ini:
         return None
     try:
-        dados = json.loads(bruto[ini : fim + 1])
+        dados = json.loads(texto[ini : fim + 1])
     except json.JSONDecodeError:
         return None
     carrossel = str(dados.get("carrossel") or "").strip()
@@ -58,12 +69,14 @@ def _sintetizar_llm(audiencia: str, artigo: str, anchors: dict) -> dict[str, str
         f"Persona: {audiencia}\n"
         f"Artigo base:\n{artigo[:2500]}\n"
         f"Ancoras permitidas: {json.dumps(anchors, ensure_ascii=False)}\n"
-        "carrossel: 6 linhas no maximo, cada uma 'Slide N: ...', "
-        "com gancho no 1, corpo e conclusao no ultimo.\n"
-        "roteiro: exatamente 60s, linhas [0-3s], [3-20s], [20-45s], [45-60s], "
-        "com gancho visual e fala."
+        "No carrossel, no maximo 6 linhas 'Slide N: ...'. "
+        "No roteiro, linhas [0-3s], [3-20s], [20-45s] e [45-60s]."
     )
     bruto, _modelo = completar(SISTEMA, user)
+    extra = _parse_formatos(bruto)
+    if extra:
+        return extra
+    bruto, _modelo = completar(SISTEMA, user + "\nRepita so os dois blocos ===CARROSSEL=== e ===ROTEIRO===.")
     return _parse_formatos(bruto)
 
 

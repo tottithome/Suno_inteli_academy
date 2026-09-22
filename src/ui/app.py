@@ -39,40 +39,60 @@ def _rodar_pipeline(entrada: dict) -> None:
     st.session_state.resultado = estado
 
 
+def _slides(texto: str) -> list[str]:
+    linhas = [ln.strip() for ln in texto.splitlines() if ln.strip()]
+    return linhas or [texto]
+
+
+def _mostrar_formato(formato: str, texto: str) -> None:
+    if formato == "carrossel":
+        slides = _slides(texto)
+        cols = st.columns(min(len(slides), 3) or 1)
+        for i, slide in enumerate(slides):
+            with cols[i % len(cols)]:
+                st.container(border=True).markdown(slide)
+        return
+    if formato == "roteiro":
+        for linha in _slides(texto):
+            st.markdown(f"`{linha}`" if linha.startswith("[") else linha)
+        return
+    st.markdown(texto)
+
+
 def _mostrar_resultado(estado: dict) -> None:
     aviso = estado.get("adapter_aviso") or ""
-    if "falhou" in aviso or "indisponivel" in aviso:
+    if "falhou" in aviso or "indisponivel" in aviso or "JSON" in aviso or "formato local" in aviso:
         st.warning(aviso)
     elif aviso:
-        st.info(aviso)
-    if estado.get("scrape_aviso"):
-        st.info(estado["scrape_aviso"])
+        st.caption(aviso)
     if not estado.get("source_text"):
         st.error("Nao veio texto da fonte.")
         return
 
-    st.subheader("Ancoras extraidas")
-    st.json(estado.get("anchors") or {})
-
-    st.subheader("Matriz de saidas")
-    cols = st.columns(len(AUDIENCIAS))
     outputs = estado.get("outputs") or {}
-    for col, audiencia in zip(cols, AUDIENCIAS):
-        with col:
-            st.markdown(f"### {audiencia}")
-            formato = st.selectbox("Formato", FORMATOS, key=f"fmt-{audiencia}")
-            st.text_area(
-                "Conteudo",
-                outputs.get(audiencia, {}).get(formato, ""),
-                height=280,
-                key=f"out-{audiencia}",
+    reports = estado.get("eval_reports") or {}
+    abas = st.tabs([nome.capitalize() for nome in AUDIENCIAS])
+    for aba, audiencia in zip(abas, AUDIENCIAS):
+        with aba:
+            rel = reports.get(audiencia) or {}
+            passou = "passou" if rel.get("passou") else "reprovou"
+            st.caption(
+                f"Juiz: {passou} · Flesch {rel.get('flesch_pt', '—')} · "
+                f"Jev {((rel.get('jev') or {}).get('nivel_aparente') or '—')}"
             )
+            formato = st.radio(
+                "Formato",
+                FORMATOS,
+                horizontal=True,
+                key=f"fmt-{audiencia}",
+            )
+            _mostrar_formato(formato, outputs.get(audiencia, {}).get(formato, ""))
 
-    st.subheader("Relatorio do avaliador")
-    st.json(estado.get("eval_reports") or {})
-    if estado.get("falhas_para_reflexao"):
-        st.warning("Falhas injetadas no reflection loop:")
-        st.write(estado["falhas_para_reflexao"])
+    with st.expander("Ancoras e relatorio completo"):
+        st.json(estado.get("anchors") or {})
+        st.json(reports)
+        if estado.get("falhas_para_reflexao"):
+            st.write(estado["falhas_para_reflexao"])
 
 
 def _carrossel() -> dict | None:
